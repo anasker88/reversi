@@ -53,6 +53,7 @@ fn main() {
                 let mut state: ClientState = ClientState::Start;
                 let mut black: u64 = 0;
                 let mut white: u64 = 0;
+                let mut turn: u8 = 0; //Passの時は進めないでカウント
                 let mut i_am_black: bool = true;
                 let mut time_left: u64;
                 loop {
@@ -66,6 +67,7 @@ fn main() {
                             println!("{:?}", input);
                             match input.get(0).unwrap().as_str() {
                                 "START" => {
+                                    turn = 1;
                                     black = 0x0000000810000000; //黒い石の初期配置
                                     white = 0x0000001008000000; //白い石の初期配置
                                     match input.get(1).unwrap().as_str() {
@@ -95,13 +97,30 @@ fn main() {
                             let mut opponent_board = if i_am_black { white } else { black };
                             let legal = legal_move(my_board, opponent_board);
                             //現状を表示
+                            println!("Turn {}", turn);
                             print_board(black, white, legal);
                             println!("My Stone : {}", count_stone(my_board));
                             println!("Enemy Stone : {}", count_stone(opponent_board));
                             //手を取得
-                            let (score, my_move) =
-                                negamax(8, my_board, opponent_board, std::i32::MAX);
-                            println!("Score {}", score);
+                            let (score, my_move) = negamax(
+                                if turn <= 20 {
+                                    6
+                                } else if turn <= 42 {
+                                    7
+                                } else if turn <= 47 {
+                                    9
+                                } else {
+                                    13
+                                },
+                                my_board,
+                                opponent_board,
+                                std::i32::MAX,
+                                turn,
+                            );
+                            println!("Score {}", -score);
+                            if my_move != 0 {
+                                turn += 1;
+                            }
                             let my_move_as_s = infer_move(my_move);
                             let msg = format!("MOVE {}\n", my_move_as_s);
                             write_something(&mut writer, msg); //ここで送信
@@ -117,17 +136,22 @@ fn main() {
                         ClientState::OpponentMove => {
                             //手を取得
                             let input = read_something(&mut reader);
+                            println!("{:?}", input);
                             match input.get(0).unwrap().as_str() {
                                 "MOVE" => {
                                     let mut my_board = if i_am_black { black } else { white };
                                     let mut opponent_board = if i_am_black { white } else { black };
                                     let legal = legal_move(opponent_board, my_board);
                                     //現状を表示
+                                    println!("Turn {}", turn);
                                     print_board(black, white, legal);
                                     println!("My Stone : {}", count_stone(my_board));
                                     println!("Enemy Stone : {}", count_stone(opponent_board));
                                     let opponent_move_as_s = input.get(1).unwrap();
                                     let opponent_move = encode_move(opponent_move_as_s.to_string());
+                                    if opponent_move != 0 {
+                                        turn += 1;
+                                    }
                                     println!("Enemy Move : {}", opponent_move_as_s);
                                     (opponent_board, my_board) =
                                         next_board(opponent_board, my_board, opponent_move);
@@ -142,6 +166,7 @@ fn main() {
                                         println!("I WIN!");
                                     } else if input.get(1).unwrap().as_str() == "LOSE" {
                                         println!("I LOSE...");
+                                        // return;
                                     }
                                     println!("My Stone : {}", input.get(2).unwrap());
                                     println!("Enemy Stone : {}", input.get(3).unwrap());
@@ -165,6 +190,7 @@ fn main() {
                                         println!("I WIN!");
                                     } else if input.get(1).unwrap().as_str() == "LOSE" {
                                         println!("I LOSE...");
+                                        // return;
                                     }
                                     println!("My Stone : {}", input.get(2).unwrap());
                                     println!("Enemy Stone : {}", input.get(3).unwrap());
