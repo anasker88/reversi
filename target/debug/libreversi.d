@@ -1,1 +1,0 @@
-/home/tohta_abe/program/fljikken/reversi/reversi/target/debug/libreversi.rlib: /home/tohta_abe/program/fljikken/reversi/reversi/src/ai.rs /home/tohta_abe/program/fljikken/reversi/reversi/src/lib.rs /home/tohta_abe/program/fljikken/reversi/reversi/src/rule.rs /home/tohta_abe/program/fljikken/reversi/reversi/src/testplay.rs
