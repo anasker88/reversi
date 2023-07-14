@@ -104,13 +104,13 @@ fn main() {
                             //手を取得
                             let (score, my_move) = negamax(
                                 if turn <= 20 {
-                                    6
+                                    1 << 20
                                 } else if turn <= 42 {
-                                    7
+                                    1 << 23
                                 } else if turn <= 47 {
-                                    9
+                                    1 << 25
                                 } else {
-                                    13
+                                    std::u64::MAX
                                 },
                                 my_board,
                                 opponent_board,

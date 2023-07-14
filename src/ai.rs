@@ -25,11 +25,17 @@ pub fn random(legal: u64) -> u64 {
     return mask;
 }
 
-pub fn negamax(depth: u8, player_board: u64, enemy_board: u64, limit: i32, turn: u8) -> (i32, u64) {
+pub fn negamax(
+    nodes: u64,
+    player_board: u64,
+    enemy_board: u64,
+    limit: i32,
+    turn: u8,
+) -> (i32, u64) {
     //println!("node visit");
     let mut best_move: u64 = 0;
     let mut val: i32 = -std::i32::MAX;
-    if depth == 0
+    if nodes == 0
         || (legal_move(player_board, enemy_board) == 0
             && legal_move(enemy_board, player_board) == 0)
     {
@@ -40,9 +46,10 @@ pub fn negamax(depth: u8, player_board: u64, enemy_board: u64, limit: i32, turn:
 
     let legal = legal_move(player_board, enemy_board);
     if legal == 0 {
-        (val, _) = negamax(depth, enemy_board, player_board, -limit, turn);
+        (val, _) = negamax(nodes, enemy_board, player_board, -limit, turn);
         return (-val, best_move);
     }
+    let next_nodes = nodes / count_stone(legal);
     let mut next_move: u64 = 1;
     while next_move != 0 {
         //println!("{}", infer_move(next_move));
@@ -52,7 +59,7 @@ pub fn negamax(depth: u8, player_board: u64, enemy_board: u64, limit: i32, turn:
         }
         let (next_player_board, next_enemy_board) =
             next_board(player_board, enemy_board, next_move);
-        let (v, _) = negamax(depth - 1, next_enemy_board, next_player_board, -val, turn);
+        let (v, _) = negamax(next_nodes, next_enemy_board, next_player_board, -val, turn);
         if v > val {
             //println!("new best");
             val = v;
