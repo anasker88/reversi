@@ -110,7 +110,7 @@ fn main() {
                                     8
                                 } else if turn <= 35 {
                                     9
-                                } else if turn < 60 - yomikiri {
+                                } else if turn < 60 - END_SEARCH {
                                     10
                                 } else {
                                     100
@@ -123,7 +123,7 @@ fn main() {
                             println!("visited nodes :{}", nodes);
                             if score == 100000 {
                                 (score, my_move, nodes) = negamax(
-                                    std::cmp::max(60 - turn - 2, 1),
+                                    if turn < 57 { 60 - turn - 2 } else { 1 },
                                     my_board,
                                     opponent_board,
                                     std::i32::MAX,

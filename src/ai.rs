@@ -1,6 +1,7 @@
 use crate::rule::*;
 
 const CORNER: u64 = 0x8100000000000081;
+pub const END_SEARCH: u8 = 17;
 // const NEXT_TO_CORNER: u64 = 0x42c300000000c342;
 pub fn human_play() -> u64 {
     let mut buf = String::new(); //A
@@ -99,8 +100,12 @@ fn evaluate_board(player_board: u64, enemy_board: u64, turn: u8) -> i32 {
         let parameter = if turn < 35 { 30 } else { 10 };
         //前半は打てる手を広げつつ、自分の石を減らす
 
-        (count_stone(legal) as i32 - count_stone(enemy_legal) as i32) * 3 - player_stone as i32
-            + enemy_stone as i32
-            + parameter * corner_score
+        if turn < 60 - END_SEARCH {
+            (count_stone(legal) as i32 - count_stone(enemy_legal) as i32) * 3 - player_stone as i32
+                + enemy_stone as i32
+                + parameter * corner_score
+        } else {
+            player_stone as i32 - enemy_stone as i32
+        }
     }
 }
