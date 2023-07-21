@@ -55,7 +55,9 @@ fn main() {
                 let mut white: u64 = 0;
                 let mut turn: u8 = 0; //Passの時は進めないでカウント
                 let mut i_am_black: bool = true;
-                let mut time_left: u64;
+                let mut time_used: u64 = 0;
+                let mut time_left: u64 = 0;
+                let mut nodes = 1 << 20;
                 loop {
                     match state {
                         ClientState::Start => {
@@ -105,10 +107,17 @@ fn main() {
                             let (score, my_move) = negamax(
                                 if turn <= 20 {
                                     1 << 20
-                                } else if turn <= 42 {
-                                    1 << 23
                                 } else if turn <= 47 {
-                                    1 << 25
+                                    if time_left > 15000 {
+                                        nodes = std::cmp::min(
+                                            1 << 25,
+                                            nodes * (time_left - 15000)
+                                                / (time_used * (48 - turn as u64)),
+                                        );
+                                        nodes
+                                    } else {
+                                        1 << 20
+                                    }
                                 } else {
                                     std::u64::MAX
                                 },
@@ -180,7 +189,9 @@ fn main() {
                             let input = read_something(&mut reader);
                             match input.get(0).unwrap().as_str() {
                                 "ACK" => {
+                                    time_used = time_left;
                                     time_left = input.get(1).unwrap().parse().unwrap();
+                                    time_used -= time_left;
                                     println!("Time left : {} ms", time_left);
                                     //状態遷移
                                     state = ClientState::OpponentMove;
