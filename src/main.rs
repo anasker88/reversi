@@ -95,28 +95,42 @@ fn main() {
                         ClientState::MyMove => {
                             let mut my_board = if i_am_black { black } else { white };
                             let mut opponent_board = if i_am_black { white } else { black };
-                            let legal = legal_move(my_board, opponent_board);
+                            // let legal = legal_move(my_board, opponent_board);
                             //現状を表示
                             println!("Turn {}", turn);
-                            print_board(black, white, legal);
+                            // print_board(black, white, legal);
                             println!("My Stone : {}", count_stone(my_board));
                             println!("Enemy Stone : {}", count_stone(opponent_board));
                             //手を取得
-                            let (score, my_move) = negamax(
+                            let mut score;
+                            let mut my_move;
+                            let mut nodes;
+                            (score, my_move, nodes) = negamax(
                                 if turn <= 20 {
-                                    6
-                                } else if turn <= 42 {
-                                    7
-                                } else if turn <= 47 {
+                                    8
+                                } else if turn <= 35 {
                                     9
+                                } else if turn < 60 - yomikiri {
+                                    10
                                 } else {
-                                    13
+                                    100
                                 },
                                 my_board,
                                 opponent_board,
-                                std::i32::MAX,
+                                1,
                                 turn,
                             );
+                            println!("visited nodes :{}", nodes);
+                            if score == 100000 {
+                                (score, my_move, nodes) = negamax(
+                                    std::cmp::max(60 - turn - 2, 1),
+                                    my_board,
+                                    opponent_board,
+                                    std::i32::MAX,
+                                    turn,
+                                );
+                                println!("visited nodes :{}", nodes);
+                            }
                             println!("Score {}", -score);
                             if my_move != 0 {
                                 turn += 1;
@@ -141,10 +155,10 @@ fn main() {
                                 "MOVE" => {
                                     let mut my_board = if i_am_black { black } else { white };
                                     let mut opponent_board = if i_am_black { white } else { black };
-                                    let legal = legal_move(opponent_board, my_board);
+                                    // let legal = legal_move(opponent_board, my_board);
                                     //現状を表示
                                     println!("Turn {}", turn);
-                                    print_board(black, white, legal);
+                                    // print_board(black, white, legal);
                                     println!("My Stone : {}", count_stone(my_board));
                                     println!("Enemy Stone : {}", count_stone(opponent_board));
                                     let opponent_move_as_s = input.get(1).unwrap();

@@ -51,7 +51,7 @@ pub fn legal_move(player_board: u64, enemy_board: u64) -> u64 {
     for shift in SHIFTS {
         ret |= find_legal_move(player_board, enemy_board, shift);
     }
-    return ret;
+    ret
 }
 
 fn find_reverse_stones(player_board: u64, enemy_board: u64, next_move: u64, shift: i8) -> u64 {
@@ -73,9 +73,9 @@ fn find_reverse_stones(player_board: u64, enemy_board: u64, next_move: u64, shif
         reverse_tmp |= tmp & masked_enemy;
     }
     if (player_board & tmp) != 0 {
-        return reverse_tmp;
+        reverse_tmp
     } else {
-        return 0;
+        0
     }
 }
 
@@ -84,20 +84,22 @@ pub fn next_board(player_board: u64, enemy_board: u64, next_move: u64) -> (u64, 
     for shift in SHIFTS {
         reverse |= find_reverse_stones(player_board, enemy_board, next_move, shift);
     }
-    return (player_board | next_move | reverse, enemy_board & !reverse);
+    (player_board | next_move | reverse, enemy_board & !reverse)
 }
 
 pub fn judge_move(player_board: u64, enemy_board: u64, next_move: u64) -> bool {
     if count_stone(next_move) != 1 {
         //動かしている石は一つだけか
-        return false;
+        false
+    } else {
+        let legal = legal_move(player_board, enemy_board);
+        if (legal & next_move) == 0 {
+            //legal_moveか
+            false
+        } else {
+            true
+        }
     }
-    let legal = legal_move(player_board, enemy_board);
-    if (legal & next_move) == 0 {
-        //legal_moveか
-        return false;
-    }
-    return true;
 }
 
 pub fn no_move(black: u64, white: u64) -> bool {
