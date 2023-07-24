@@ -55,7 +55,7 @@ fn main() {
                 let mut white: u64 = 0;
                 let mut turn: u8 = 0; //Passの時は進めないでカウント
                 let mut i_am_black: bool = true;
-                let mut time_left: u64;
+                let mut time_left: i32;
                 loop {
                     match state {
                         ClientState::Start => {
@@ -151,7 +151,7 @@ fn main() {
                             //手を取得
                             let input = read_something(&mut reader);
                             println!("{:?}", input);
-                            match input.get(0).unwrap().as_str() {
+                            match input.get(0).unwrap_or(&"None".to_string()).as_str() {
                                 "MOVE" => {
                                     let mut my_board = if i_am_black { black } else { white };
                                     let mut opponent_board = if i_am_black { white } else { black };
@@ -187,11 +187,13 @@ fn main() {
                                     println!("Reason : {}", input.get(4).unwrap());
                                     state = ClientState::WaitForMatch;
                                 }
+                                "None" => state = ClientState::OpponentMove,
                                 _ => panic!(),
                             }
                         }
                         ClientState::WaitForAck => {
                             let input = read_something(&mut reader);
+                            println!("{:?}", input);
                             match input.get(0).unwrap().as_str() {
                                 "ACK" => {
                                     time_left = input.get(1).unwrap().parse().unwrap();
