@@ -2,7 +2,7 @@ use crate::rule::*;
 
 const CORNER: u64 = 0x8100000000000081;
 const NEXT_TO_CORNER: u64 = 0x42c300000000c342;
-pub const END_SEARCH: u8 = 17;
+pub const END_SEARCH: u8 = 16;
 // const NEXT_TO_CORNER: u64 = 0x42c300000000c342;
 pub fn human_play() -> u64 {
     let mut buf = String::new(); //A
@@ -27,7 +27,7 @@ pub fn random(legal: u64) -> u64 {
     mask
 }
 
-pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8) -> u64 {
+pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) -> u64 {
     //手を取得
     let mut score = 0;
     let mut best_moves = Vec::new();
@@ -51,6 +51,7 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8) -> u64 {
                 1000000,
                 former_best_moves.clone(),
                 turn,
+                nodes_limit * 10,
             );
             if score != 1234 {
                 println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
@@ -77,9 +78,13 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8) -> u64 {
             1000000,
             best_moves.clone(),
             turn,
+            std::cmp::min(time_left * 6000, 200000000),
         );
         if score == 1234 {
-            println!("Yomikiri failed");
+            println!(
+                "Yomikiri failed! Nodes: {}",
+                std::cmp::min(time_left * 6000, 200000000)
+            );
         } else {
             println!("depth:Inf Score:{} visited nodes:{}", -score, nodes);
         }
@@ -91,12 +96,30 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8) -> u64 {
             } else {
                 1
             };
+            let nodes_limit = 30000000;
             for depth in 1..max_depth + 1 {
-                (score, best_moves, nodes) =
-                    negamax(depth, player_board, enemy_board, 1000000, best_moves, turn);
-                println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
+                former_best_moves = best_moves;
+                (score, best_moves, nodes) = negamax(
+                    depth,
+                    player_board,
+                    enemy_board,
+                    1000000,
+                    former_best_moves.clone(),
+                    turn,
+                    nodes_limit * 10,
+                );
+                if score != 1234 {
+                    println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
+                }
+                if nodes > nodes_limit {
+                    break;
+                }
             }
-            best_moves.pop().unwrap()
+            if score == 1234 {
+                former_best_moves.pop().unwrap()
+            } else {
+                best_moves.pop().unwrap()
+            }
         }
     }
 }
@@ -108,6 +131,7 @@ fn negamax(
     limit: i32,
     mut former_best_moves: Vec<u64>,
     turn: u8,
+    node_limit: u64,
 ) -> (i32, Vec<u64>, u64) {
     // if turn > 3 {
     //     panic!();
@@ -140,6 +164,7 @@ fn negamax(
                 -limit,
                 former_best_moves,
                 turn,
+                node_limit,
             );
             current_best_moves.push(0);
             (-val, current_best_moves, new_nodes + 1)
@@ -169,9 +194,10 @@ fn negamax(
                         Vec::new()
                     },
                     turn,
+                    node_limit,
                 );
                 cur_nodes += new_nodes;
-                if new_nodes > 200000000 {
+                if new_nodes > node_limit {
                     return (1234, Vec::new(), 0);
                 }
                 if v > val {
@@ -215,14 +241,17 @@ fn evaluate_board(player_board: u64, enemy_board: u64, turn: u8) -> i32 {
         let enemy_legal = legal_move(enemy_board, player_board);
         let corner_score =
             count_stone(player_board & CORNER) as i32 - count_stone(enemy_board & CORNER) as i32;
-        let next_to_corner_score = count_stone(enemy_board & NEXT_TO_CORNER) as i32
+        let _next_to_corner_score = count_stone(enemy_board & NEXT_TO_CORNER) as i32
             - count_stone(player_board & NEXT_TO_CORNER) as i32;
 
         let parameter = if turn < 35 { 30 } else { 10 };
         //前半は打てる手を広げつつ、自分の石を減らす
 
         if turn < 60 - END_SEARCH {
-            (count_stone(legal) as i32 - count_stone(enemy_legal) as i32) * 3 - player_stone as i32
+            (count_stone(legal) as i32 - count_stone(enemy_legal) as i32) * 3
+                + (30 / (count_stone(enemy_legal) + 1) as i32
+                    - 30 / (count_stone(legal) + 1) as i32)
+                - player_stone as i32
                 + enemy_stone as i32
                 + parameter * corner_score
         } else {

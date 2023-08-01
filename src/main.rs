@@ -56,7 +56,7 @@ fn main() {
                 let mut white: u64 = 0;
                 let mut turn: u8 = 0; //Passの時は進めないでカウント
                 let mut i_am_black: bool = true;
-                let mut time_left: i32;
+                let mut time_left: i32 = 0;
                 loop {
                     match state {
                         ClientState::Start => {
@@ -65,7 +65,7 @@ fn main() {
                         }
                         ClientState::WaitForMatch => {
                             input = read_something(&mut reader);
-                            println!("{:?}", input);
+                            // println!("{:?}", input);
                             match input.get(0).unwrap().as_str() {
                                 "START" => {
                                     turn = 1;
@@ -103,7 +103,7 @@ fn main() {
                             println!("My Stone : {}", count_stone(my_board));
                             println!("Enemy Stone : {}", count_stone(opponent_board));
                             //手を取得
-                            let my_move = ai_play(my_board, opponent_board, turn);
+                            let my_move = ai_play(my_board, opponent_board, turn, time_left as u64);
                             if my_move != 0 {
                                 turn += 1;
                             }
@@ -122,7 +122,7 @@ fn main() {
                         ClientState::OpponentMove => {
                             //手を取得
                             let input = read_something(&mut reader);
-                            println!("{:?}", input);
+                            // println!("{:?}", input);
                             match input.get(0).unwrap_or(&"None".to_string()).as_str() {
                                 "MOVE" => {
                                     let mut my_board = if i_am_black { black } else { white };
@@ -165,7 +165,7 @@ fn main() {
                         }
                         ClientState::WaitForAck => {
                             let input = read_something(&mut reader);
-                            println!("{:?}", input);
+                            //println!("{:?}", input);
                             match input.get(0).unwrap().as_str() {
                                 "ACK" => {
                                     time_left = input.get(1).unwrap().parse().unwrap();
