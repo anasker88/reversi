@@ -1,6 +1,7 @@
 use crate::rule::*;
 
 const CORNER: u64 = 0x8100000000000081;
+const NEXT_TO_CORNER: u64 = 0x42c300000000c342;
 pub const END_SEARCH: u8 = 17;
 // const NEXT_TO_CORNER: u64 = 0x42c300000000c342;
 pub fn human_play() -> u64 {
@@ -26,53 +27,171 @@ pub fn random(legal: u64) -> u64 {
     mask
 }
 
-pub fn negamax(
+pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8) -> u64 {
+    //手を取得
+    let mut score = 0;
+    let mut best_moves = Vec::new();
+    let mut former_best_moves: Vec<u64> = Vec::new();
+    let mut nodes;
+    if turn < 60 - END_SEARCH {
+        let max_depth = if turn <= 20 {
+            8
+        } else if turn <= 35 {
+            9
+        } else {
+            11
+        };
+        let nodes_limit = if turn <= 35 { 5000000 } else { 10000000 };
+        for depth in 1..max_depth + 1 {
+            former_best_moves = best_moves;
+            (score, best_moves, nodes) = negamax(
+                depth,
+                player_board,
+                enemy_board,
+                1000000,
+                former_best_moves.clone(),
+                turn,
+            );
+            if score != 1234 {
+                println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
+            }
+            if nodes > nodes_limit {
+                break;
+            }
+            // print!("Move:");
+            // for my_move in best_moves.clone() {
+            //     print!(" {}", infer_move(my_move));
+            // }
+            // println!();
+        }
+        if score == 1234 {
+            former_best_moves.pop().unwrap()
+        } else {
+            best_moves.pop().unwrap()
+        }
+    } else {
+        (score, best_moves, nodes) = negamax(
+            100,
+            player_board,
+            enemy_board,
+            1000000,
+            best_moves.clone(),
+            turn,
+        );
+        if score == 1234 {
+            println!("Yomikiri failed");
+        } else {
+            println!("depth:Inf Score:{} visited nodes:{}", -score, nodes);
+        }
+        if score <= 0 {
+            best_moves.pop().unwrap()
+        } else {
+            let max_depth = if turn < 57 {
+                std::cmp::min(11, 60 - turn - 2)
+            } else {
+                1
+            };
+            for depth in 1..max_depth + 1 {
+                (score, best_moves, nodes) =
+                    negamax(depth, player_board, enemy_board, 1000000, best_moves, turn);
+                println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
+            }
+            best_moves.pop().unwrap()
+        }
+    }
+}
+
+fn negamax(
     depth: u8,
     player_board: u64,
     enemy_board: u64,
     limit: i32,
+    mut former_best_moves: Vec<u64>,
     turn: u8,
-) -> (i32, u64, u64) {
+) -> (i32, Vec<u64>, u64) {
+    // if turn > 3 {
+    //     panic!();
+    // }
     //println!("node visit");
-    let mut best_move: u64 = 0;
+    let mut current_best_moves = Vec::new();
     let mut val: i32 = -std::i32::MAX;
     let mut legal = legal_move(player_board, enemy_board);
     if legal == 0 && legal_move(enemy_board, player_board) == 0 {
         val = evaluate_board(player_board, enemy_board, 0);
-        (-val, best_move, 1)
+        (-val, vec![0, 0], 1)
     } else if depth == 0 {
         val = evaluate_board(player_board, enemy_board, turn);
-        return (-val, best_move, 1);
+        return (-val, current_best_moves, 1);
     } else {
         let mut cur_nodes = 1;
         let new_nodes: u64;
         let mut next_move: u64;
         if legal == 0 {
-            (val, _, new_nodes) = negamax(depth - 1, enemy_board, player_board, -limit, turn);
-            (-val, best_move, new_nodes + 1)
+            let popped_move = former_best_moves.pop();
+            if popped_move != None {
+                if popped_move.unwrap() != 0 {
+                    println!("Something went wrong!");
+                }
+            }
+            (val, current_best_moves, new_nodes) = negamax(
+                depth - 1,
+                enemy_board,
+                player_board,
+                -limit,
+                former_best_moves,
+                turn,
+            );
+            current_best_moves.push(0);
+            (-val, current_best_moves, new_nodes + 1)
         } else {
+            let popped_move = former_best_moves.pop();
+            let mut first_loop = true;
+            if popped_move == None {
+                next_move = legal & (!legal + 1);
+            } else {
+                next_move = popped_move.unwrap();
+                // println!("Popped! move:{:?} depth:{}", infer_move(next_move), depth);
+            }
             loop {
+                if next_move & legal == 0 {
+                    println!("Invalid move");
+                }
+                let (next_player_board, next_enemy_board) =
+                    next_board(player_board, enemy_board, next_move);
+                let (v, mut best_moves, new_nodes) = negamax(
+                    depth - 1,
+                    next_enemy_board,
+                    next_player_board,
+                    -val,
+                    if first_loop {
+                        former_best_moves.clone()
+                    } else {
+                        Vec::new()
+                    },
+                    turn,
+                );
+                cur_nodes += new_nodes;
+                if new_nodes > 200000000 {
+                    return (1234, Vec::new(), 0);
+                }
+                if v > val {
+                    //println!("new best");
+                    val = v;
+                    best_moves.push(next_move);
+                    current_best_moves = best_moves;
+                }
+                if val >= limit {
+                    break;
+                }
+                first_loop = false;
+                legal = legal & !next_move;
                 if legal == 0 {
                     break;
                 } else {
                     next_move = legal & (!legal + 1);
                 }
-                legal = legal & !next_move;
-                let (next_player_board, next_enemy_board) =
-                    next_board(player_board, enemy_board, next_move);
-                let (v, _, new_nodes) =
-                    negamax(depth - 1, next_enemy_board, next_player_board, -val, turn);
-                cur_nodes += new_nodes;
-                if v > val {
-                    //println!("new best");
-                    val = v;
-                    best_move = next_move;
-                }
-                if val >= limit {
-                    break;
-                }
             }
-            (-val, best_move, cur_nodes)
+            (-val, current_best_moves, cur_nodes)
         }
     }
 }
@@ -96,6 +215,8 @@ fn evaluate_board(player_board: u64, enemy_board: u64, turn: u8) -> i32 {
         let enemy_legal = legal_move(enemy_board, player_board);
         let corner_score =
             count_stone(player_board & CORNER) as i32 - count_stone(enemy_board & CORNER) as i32;
+        let next_to_corner_score = count_stone(enemy_board & NEXT_TO_CORNER) as i32
+            - count_stone(player_board & NEXT_TO_CORNER) as i32;
 
         let parameter = if turn < 35 { 30 } else { 10 };
         //前半は打てる手を広げつつ、自分の石を減らす
