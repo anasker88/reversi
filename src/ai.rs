@@ -35,13 +35,19 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
     let mut nodes;
     if turn < 60 - END_SEARCH {
         let max_depth = if turn <= 20 {
-            8
+            9
         } else if turn <= 35 {
             9
         } else {
             11
         };
-        let nodes_limit = if turn <= 35 { 5000000 } else { 10000000 };
+        let nodes_limit = if turn <= 20 {
+            2000000
+        } else if turn <= 35 {
+            5000000
+        } else {
+            10000000
+        };
         for depth in 1..max_depth + 1 {
             former_best_moves = best_moves;
             (score, best_moves, nodes) = negamax(
@@ -78,7 +84,7 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
             1000000,
             best_moves.clone(),
             turn,
-            std::cmp::min(time_left * 6000, 200000000),
+            std::cmp::min(time_left * 4000, 200000000),
         );
         if score == 1234 {
             println!(
@@ -246,11 +252,10 @@ fn evaluate_board(player_board: u64, enemy_board: u64, turn: u8) -> i32 {
 
         let parameter = if turn < 35 { 30 } else { 10 };
         //前半は打てる手を広げつつ、自分の石を減らす
-
         if turn < 60 - END_SEARCH {
             (count_stone(legal) as i32 - count_stone(enemy_legal) as i32) * 3
-                + (30 / (count_stone(enemy_legal) + 1) as i32
-                    - 30 / (count_stone(legal) + 1) as i32)
+                + (10 / (count_stone(enemy_legal) + 1) as i32
+                    - 10 / (count_stone(legal) + 1) as i32)
                 - player_stone as i32
                 + enemy_stone as i32
                 + parameter * corner_score
