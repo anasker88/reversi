@@ -41,13 +41,7 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
         } else {
             11
         };
-        let nodes_limit = if turn <= 20 {
-            2000000
-        } else if turn <= 35 {
-            5000000
-        } else {
-            10000000
-        };
+        let nodes_limit = if turn <= 35 { 4000000 } else { 6000000 };
         for depth in 1..max_depth + 1 {
             former_best_moves = best_moves;
             (score, best_moves, nodes) = negamax(
@@ -59,7 +53,7 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
                 turn,
                 nodes_limit * 10,
             );
-            if score != 1234 {
+            if score.abs() != 1234 {
                 println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
             }
             if nodes > nodes_limit {
@@ -71,7 +65,7 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
             // }
             // println!();
         }
-        if score == 1234 {
+        if score.abs() == 1234 {
             former_best_moves.pop().unwrap()
         } else {
             best_moves.pop().unwrap()
@@ -84,15 +78,17 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
             1000000,
             best_moves.clone(),
             turn,
-            std::cmp::min(time_left * 4000, 200000000),
+            std::cmp::min(time_left * 6000, 180000000),
         );
-        if score == 1234 {
-            println!(
-                "Yomikiri failed! Nodes: {}",
-                std::cmp::min(time_left * 6000, 200000000)
-            );
+        if score.abs() == 1234 {
+            println!("Yomikiri failed! Nodes: {}", nodes);
         } else {
             println!("depth:Inf Score:{} visited nodes:{}", -score, nodes);
+            print!("Move:");
+            for my_move in best_moves.clone() {
+                print!(" {}", infer_move(my_move));
+            }
+            println!();
         }
         if score <= 0 {
             best_moves.pop().unwrap()
@@ -102,7 +98,7 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
             } else {
                 1
             };
-            let nodes_limit = 30000000;
+            let nodes_limit = 5000000;
             for depth in 1..max_depth + 1 {
                 former_best_moves = best_moves;
                 (score, best_moves, nodes) = negamax(
@@ -114,14 +110,14 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
                     turn,
                     nodes_limit * 10,
                 );
-                if score != 1234 {
+                if score.abs() != 1234 {
                     println!("depth:{} Score:{} visited nodes:{}", depth, -score, nodes);
                 }
                 if nodes > nodes_limit {
                     break;
                 }
             }
-            if score == 1234 {
+            if score.abs() == 1234 {
                 former_best_moves.pop().unwrap()
             } else {
                 best_moves.pop().unwrap()
@@ -144,7 +140,7 @@ fn negamax(
     // }
     //println!("node visit");
     let mut current_best_moves = Vec::new();
-    let mut val: i32 = -std::i32::MAX;
+    let mut val: i32 = -std::i32::MAX / 2;
     let mut legal = legal_move(player_board, enemy_board);
     if legal == 0 && legal_move(enemy_board, player_board) == 0 {
         val = evaluate_board(player_board, enemy_board, 0);
@@ -203,8 +199,8 @@ fn negamax(
                     node_limit,
                 );
                 cur_nodes += new_nodes;
-                if new_nodes > node_limit {
-                    return (1234, Vec::new(), 0);
+                if cur_nodes > node_limit {
+                    return (1234, Vec::new(), cur_nodes);
                 }
                 if v > val {
                     //println!("new best");
@@ -252,13 +248,18 @@ fn evaluate_board(player_board: u64, enemy_board: u64, turn: u8) -> i32 {
 
         let parameter = if turn < 35 { 30 } else { 10 };
         //前半は打てる手を広げつつ、自分の石を減らす
-        if turn < 60 - END_SEARCH {
+
+        if turn < 50 {
             (count_stone(legal) as i32 - count_stone(enemy_legal) as i32) * 3
                 + (10 / (count_stone(enemy_legal) + 1) as i32
                     - 10 / (count_stone(legal) + 1) as i32)
-                - player_stone as i32
-                + enemy_stone as i32
                 + parameter * corner_score
+                + parameter * _next_to_corner_score / 7
+                - if turn <= 35 {
+                    player_stone as i32 - enemy_stone as i32
+                } else {
+                    0
+                }
         } else {
             player_stone as i32 - enemy_stone as i32
         }
