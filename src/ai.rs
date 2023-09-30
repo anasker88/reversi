@@ -84,11 +84,11 @@ pub fn ai_play(player_board: u64, enemy_board: u64, turn: u8, time_left: u64) ->
             println!("Yomikiri failed! Nodes: {}", nodes);
         } else {
             println!("depth:Inf Score:{} visited nodes:{}", -score, nodes);
-            print!("Move:");
-            for my_move in best_moves.clone() {
-                print!(" {}", infer_move(my_move));
-            }
-            println!();
+            // print!("Move:");
+            // for my_move in best_moves.clone() {
+            //     print!(" {}", infer_move(my_move));
+            // }
+            // println!();
         }
         if score <= 0 {
             best_moves.pop().unwrap()
@@ -140,7 +140,7 @@ fn negamax(
     // }
     //println!("node visit");
     let mut current_best_moves = Vec::new();
-    let mut val: i32 = -std::i32::MAX / 2;
+    let mut val: i32 = -1000000;
     let mut legal = legal_move(player_board, enemy_board);
     if legal == 0 && legal_move(enemy_board, player_board) == 0 {
         val = evaluate_board(player_board, enemy_board, 0);
@@ -163,7 +163,7 @@ fn negamax(
                 depth - 1,
                 enemy_board,
                 player_board,
-                -limit,
+                if limit == 1000000 { limit } else { -limit },
                 former_best_moves,
                 turn,
                 node_limit,
