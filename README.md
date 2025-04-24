@@ -1,2 +1,2 @@
 # reversi
-fl
+othello AI and program
